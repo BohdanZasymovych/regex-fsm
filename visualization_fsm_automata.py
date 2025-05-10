@@ -28,13 +28,19 @@ def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
         state_class = state.__class__.__name__
         
         if state_class == "AsciiState":
-            label = f"{state._State__id}: '{state.char}'"
+            label = f"{state._State__id}: {state_class} '{state.char}'"
         elif state_class == "DotState":
-            label = f"{state._State__id}: '.'"
+            label = f"{state._State__id}: {state_class} '.'"
+        elif state_class == "CharClassState":
+            if state.is_negated:
+                chars_str = "[^" + ''.join(sorted(state.chars)) + "]"
+            else:
+                chars_str = "[" + ''.join(sorted(state.chars)) + "]"
+            label = f"{state._State__id}: {state_class} {chars_str}"
         elif state_class == "StartState":
-            label = f"{state._State__id}: START"
+            label = f"{state._State__id}: {state_class}"
         else:
-            label = f"{state._State__id}"
+            label = f"{state._State__id}: {state_class}"
         
         # Mark accept states with double circle
         shape = "doublecircle" if state.is_accept_state else "circle"
@@ -51,6 +57,16 @@ def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
                 trans_label = f"'{next_state.char}'"
             elif next_class == "DotState":
                 trans_label = "any ascii"
+            elif next_class == "CharClassState":
+                if next_state.is_negated:
+                    chars_display = "[^...]"
+                else:
+                    # Show actual characters if there aren't too many
+                    if len(next_state.chars) < 5:
+                        chars_display = f"[{''.join(sorted(next_state.chars))}]"
+                    else:
+                        chars_display = "[...]"
+                trans_label = chars_display
             else:
                 trans_label = "transition"
                 

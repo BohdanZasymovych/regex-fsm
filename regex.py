@@ -81,7 +81,26 @@ class AsciiState(State):
     """
     def __init__(self, state_id: int, char: str) -> None:
         super().__init__(state_id)
-        self.char = char
+        self.char: str = char
+
+
+class CharClassState(State):
+    """
+    State for character class [abc], [a-z], etc.
+    """
+    def __init__(self, state_id: int, chars: set, is_negated: bool):
+        super().__init__(state_id)
+        self.chars: set = chars
+        self.is_negated: bool = is_negated
+
+    def accepts(self, char):
+        """
+        function checks whether occured character is handled by the current state
+        """
+        if self.is_negated:
+            return char.isascii() and char not in self.chars
+
+        return char in self.chars
 
 
 class RegexFSM:
@@ -95,13 +114,38 @@ class RegexFSM:
         self.__start_states: set[State] = self.start_state.epsilon_closure()
         self.__cur_states: set[State] = self.__start_states
 
+    def __parse_char_class(self, regex_expr: str, i: int) -> tuple[set, bool, int]:
+        """
+        function parses character class
+        """
+        char_set = set()
+        is_negated = False
+
+        if regex_expr[i] == "^":
+            is_negated = True
+            i += 1
+
+        while i < len(regex_expr) and regex_expr[i] != "]":
+
+            if i+2 < len(regex_expr) and regex_expr[i+1] == "-":
+                start_char = regex_expr[i]
+                end_char = regex_expr[i+2]
+                char_set.update(chr(c) for c in range(ord(start_char), ord(end_char)+1))
+                i += 3
+                continue
+
+            char_set.add(regex_expr[i])
+            i += 1
+
+        return char_set, is_negated, i
+
     def __init_machine(self, regex_expr: str) -> None:
         """
         function initializes FSM
         """
         prev_state = self.start_state
 
-        i = 0
+        i, state_id = 0, 1
         while i < len(regex_expr):
             char = regex_expr[i]
 
@@ -109,14 +153,20 @@ class RegexFSM:
                 i += 1
                 continue
 
-            next_char = regex_expr[i + 1] if i + 1 < len(regex_expr) else None
-
-            if char.isascii() and char != ".":
-                cur_state = AsciiState(i+1, char)
-            elif char == ".":
-                cur_state = DotState(i+1)
+            if char == ".":
+                cur_state = DotState(state_id)
+                state_id += 1
+            elif char == "[":
+                char_set, is_negated, i = self.__parse_char_class(regex_expr, i+1)
+                cur_state = CharClassState(state_id, char_set, is_negated)
+                state_id += 1
+            elif char.isascii():
+                cur_state = AsciiState(state_id, char)
+                state_id += 1
             else:
-                raise AttributeError("Character is not supported")
+                raise AttributeError(f"Character '{char}'' is not supported")
+
+            next_char = regex_expr[i+1] if i+1 < len(regex_expr) else None
 
             match next_char:
                 case "*":
@@ -131,7 +181,7 @@ class RegexFSM:
                     if prev_state is not None:
                         prev_state.next_states.add(cur_state)
 
-            if i == len(regex_expr) - 1 or (i == len(regex_expr) - 2 and next_char in ("+", "*")):
+            if i == len(regex_expr)-1 or (i == len(regex_expr)-2 and next_char in ("+", "*")):
                 cur_state.is_accept_state = True
 
             prev_state = cur_state
@@ -175,13 +225,13 @@ class RegexFSM:
         return False
 
 
-# if __name__ == "__main__":
-#     regex_pattern = "a*4.+hi"
-#     from visualization_fsm_automata import visualize_regex_fsm
+if __name__ == "__main__":
+    regex_pattern = "[a-c]*4.+hi"
+    from visualization_fsm_automata import visualize_regex_fsm
 
-#     regex_compiled = RegexFSM(regex_pattern)
+    regex_compiled = RegexFSM(regex_pattern)
+    visualize_regex_fsm(regex_compiled, regex_pattern+"_automata")
 
-#     print(regex_compiled.check_string("aaaaaa4uhi"))  # True
-#     print(regex_compiled.check_string("4uhi"))  # True
-#     print(regex_compiled.check_string("meow"))  # False
-#     visualize_regex_fsm(regex_compiled, regex_pattern+"_automata")
+    print(regex_compiled.check_string("aaaaaa4uhi"))  # True
+    print(regex_compiled.check_string("4uhi"))  # True
+    print(regex_compiled.check_string("meow"))  # False

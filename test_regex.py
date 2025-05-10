@@ -181,6 +181,141 @@ class TestRegexPatterns(unittest.TestCase):
         self.assertTrue(regex4.check_string("abcz"))  # Some chars between
         self.assertFalse(regex4.check_string("a"))    # Missing z
         self.assertFalse(regex4.check_string("z"))    # Missing a
+    
+    def test_basic_char_classes(self):
+        """Test basic character classes with individual characters"""
+        pattern = "[abc]"
+        regex = RegexFSM(pattern)
+        
+        # Should match
+        self.assertTrue(regex.check_string("a"))
+        self.assertTrue(regex.check_string("b"))
+        self.assertTrue(regex.check_string("c"))
+        
+        # Should not match
+        self.assertFalse(regex.check_string(""))
+        self.assertFalse(regex.check_string("d"))
+        self.assertFalse(regex.check_string("ab"))
+        self.assertFalse(regex.check_string("abc"))
+
+    def test_char_ranges(self):
+        """Test character class ranges"""
+        pattern = "[a-e]"
+        regex = RegexFSM(pattern)
+        
+        # Should match
+        self.assertTrue(regex.check_string("a"))
+        self.assertTrue(regex.check_string("b"))
+        self.assertTrue(regex.check_string("e"))
+        
+        # Should not match
+        self.assertFalse(regex.check_string(""))
+        self.assertFalse(regex.check_string("f"))
+        self.assertFalse(regex.check_string("ab"))
+        
+        # Test numeric range
+        pattern2 = "[0-9]"
+        regex2 = RegexFSM(pattern2)
+        self.assertTrue(regex2.check_string("0"))
+        self.assertTrue(regex2.check_string("5"))
+        self.assertTrue(regex2.check_string("9"))
+        self.assertFalse(regex2.check_string("a"))
+
+    def test_negated_char_classes(self):
+        """Test negated character classes"""
+        pattern = "[^abc]"
+        regex = RegexFSM(pattern)
+        
+        # Should match
+        self.assertTrue(regex.check_string("d"))
+        self.assertTrue(regex.check_string("z"))
+        self.assertTrue(regex.check_string("0"))
+        
+        # Should not match
+        self.assertFalse(regex.check_string(""))
+        self.assertFalse(regex.check_string("a"))
+        self.assertFalse(regex.check_string("b"))
+        self.assertFalse(regex.check_string("c"))
+        self.assertFalse(regex.check_string("ab"))
+
+    def test_mixed_char_classes(self):
+        """Test mixed character classes"""
+        pattern = "[a-zA-Z0-9]"
+        regex = RegexFSM(pattern)
+        
+        # Should match
+        self.assertTrue(regex.check_string("a"))
+        self.assertTrue(regex.check_string("Z"))
+        self.assertTrue(regex.check_string("5"))
+        
+        # Should not match
+        self.assertFalse(regex.check_string(""))
+        self.assertFalse(regex.check_string("_"))
+        self.assertFalse(regex.check_string("#"))
+        self.assertFalse(regex.check_string("ab"))
+
+    def test_char_class_with_operators(self):
+        """Test character classes with operators"""
+        # Star operator with char class
+        pattern1 = "[0-9]*a"
+        regex1 = RegexFSM(pattern1)
+        self.assertTrue(regex1.check_string("a"))       # Zero digits
+        self.assertTrue(regex1.check_string("5a"))      # One digit
+        self.assertTrue(regex1.check_string("123a"))    # Multiple digits
+        self.assertFalse(regex1.check_string(""))
+        self.assertFalse(regex1.check_string("5"))
+        self.assertFalse(regex1.check_string("b"))
+        
+        # Plus operator with char class
+        pattern2 = "[0-9]+a"
+        regex2 = RegexFSM(pattern2)
+        self.assertTrue(regex2.check_string("5a"))      # One digit
+        self.assertTrue(regex2.check_string("123a"))    # Multiple digits
+        self.assertFalse(regex2.check_string("a"))      # Zero digits
+        self.assertFalse(regex2.check_string(""))
+        self.assertFalse(regex2.check_string("b5a"))
+        
+        # Dot with char class
+        pattern3 = "a.[0-9]"
+        regex3 = RegexFSM(pattern3)
+        self.assertTrue(regex3.check_string("ab5"))
+        self.assertTrue(regex3.check_string("a%9"))
+        self.assertFalse(regex3.check_string("a5"))
+        self.assertFalse(regex3.check_string("abc"))
+
+    def test_char_class_edge_cases(self):
+        """Test edge cases with character classes"""
+        # Single char in class
+        pattern1 = "[x]"
+        regex1 = RegexFSM(pattern1)
+        self.assertTrue(regex1.check_string("x"))
+        self.assertFalse(regex1.check_string("y"))
+        
+        # Multiple ranges
+        pattern2 = "[a-cx-z]"
+        regex2 = RegexFSM(pattern2)
+        self.assertTrue(regex2.check_string("a"))
+        self.assertTrue(regex2.check_string("b"))
+        self.assertTrue(regex2.check_string("x"))
+        self.assertTrue(regex2.check_string("z"))
+        self.assertFalse(regex2.check_string("d"))
+        
+        # Char class at start and end
+        pattern3 = "[0-9][a-z][0-9]"
+        regex3 = RegexFSM(pattern3)
+        self.assertTrue(regex3.check_string("5a7"))
+        self.assertTrue(regex3.check_string("0z9"))
+        self.assertFalse(regex3.check_string("5aa"))
+        self.assertFalse(regex3.check_string("a57"))
+        
+        # Negated class with range
+        pattern4 = "[^a-m]"
+        regex4 = RegexFSM(pattern4)
+        self.assertTrue(regex4.check_string("n"))
+        self.assertTrue(regex4.check_string("z"))
+        self.assertTrue(regex4.check_string("5"))
+        self.assertFalse(regex4.check_string("a"))
+        self.assertFalse(regex4.check_string("m"))
 
 
 if __name__ == "__main__":
