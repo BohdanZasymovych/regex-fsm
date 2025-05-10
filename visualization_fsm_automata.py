@@ -1,5 +1,6 @@
 """Visualization of Regex FSM"""
-from regex import RegexFSM, State, AsciiState, DotState, StartState
+import graphviz
+from regex import RegexFSM, State
 
 
 def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
@@ -10,8 +11,9 @@ def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
         fsm: The compiled RegexFSM object
         output_file: The filename to save the visualization (without extension)
     """
-    # Create a directed graph
+    # Create a directed graph with horizontal layout (left to right)
     dot = graphviz.Digraph(comment='Regex FSM')
+    dot.attr(rankdir='LR')  # Set direction to Left-to-Right
     
     # Track visited states to avoid duplicates and infinite recursion
     visited_states = set()
@@ -23,11 +25,13 @@ def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
         visited_states.add(state)
         
         # Create label based on state type
-        if isinstance(state, AsciiState):
+        state_class = state.__class__.__name__
+        
+        if state_class == "AsciiState":
             label = f"{state._State__id}: '{state.char}'"
-        elif isinstance(state, DotState):
+        elif state_class == "DotState":
             label = f"{state._State__id}: '.'"
-        elif isinstance(state, StartState):
+        elif state_class == "StartState":
             label = f"{state._State__id}: START"
         else:
             label = f"{state._State__id}"
@@ -38,9 +42,19 @@ def visualize_regex_fsm(fsm: RegexFSM, output_file: str = "regex_fsm"):
         # Add the state to the graph
         dot.node(str(state._State__id), label, shape=shape)
         
-        # Add normal transitions
+        # Add normal transitions with appropriate labels
         for next_state in state.next_states:
-            dot.edge(str(state._State__id), str(next_state._State__id))
+            # Check class name instead of using isinstance
+            next_class = next_state.__class__.__name__
+            
+            if next_class == "AsciiState":
+                trans_label = f"'{next_state.char}'"
+            elif next_class == "DotState":
+                trans_label = "any ascii"
+            else:
+                trans_label = "transition"
+                
+            dot.edge(str(state._State__id), str(next_state._State__id), label=trans_label)
             add_state_to_graph(next_state)
         
         # Add epsilon transitions (with ε label)

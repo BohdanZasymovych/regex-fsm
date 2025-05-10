@@ -175,11 +175,13 @@ class RegexFSM:
         return False
 
 
-if __name__ == "__main__":
-    regex_pattern = "a*4.+hi"
+# if __name__ == "__main__":
+#     regex_pattern = "a*4.+hi"
+#     from visualization_fsm_automata import visualize_regex_fsm
 
-    regex_compiled = RegexFSM(regex_pattern)
+#     regex_compiled = RegexFSM(regex_pattern)
 
-    print(regex_compiled.check_string("aaaaaa4uhi"))  # True
-    print(regex_compiled.check_string("4uhi"))  # True
-    print(regex_compiled.check_string("meow"))  # False
+#     print(regex_compiled.check_string("aaaaaa4uhi"))  # True
+#     print(regex_compiled.check_string("4uhi"))  # True
+#     print(regex_compiled.check_string("meow"))  # False
+#     visualize_regex_fsm(regex_compiled, regex_pattern+"_automata")
